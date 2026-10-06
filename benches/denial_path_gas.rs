@@ -30,10 +30,10 @@ fn addr(env: &Env, n: u8) -> Address {
 
 /// Build a transfer Context for the given asset, recipient, and amount
 fn transfer_ctx(env: &Env, asset: u8, to: u8, amount: i128) -> Context {
-    transfer_ctx_to(env, asset, addr(env, to), amount)
+    transfer_ctx_to(env, asset, &addr(env, to), amount)
 }
 
-fn transfer_ctx_to(env: &Env, asset: u8, to: Address, amount: i128) -> Context {
+fn transfer_ctx_to(env: &Env, asset: u8, to: &Address, amount: i128) -> Context {
     let mut args: Vec<Val> = Vec::new(env);
     args.push_back(addr(env, 9).into_val(env)); // from (ignored)
     args.push_back(to.into_val(env));
@@ -392,8 +392,8 @@ fn main() {
     p_max_lists.blocked_recipients = Vec::new(&env);
     p_max_lists.protocols = Vec::new(&env);
     p_max_lists.recipient_window_caps = Vec::new(&env);
-    for i in 0..256 {
-        p_max_lists.assets.push_back(addr(&env, i as u8));
+    for i in 0_u8..=u8::MAX {
+        p_max_lists.assets.push_back(addr(&env, i));
         let recipient = Address::generate(&env);
         p_max_lists
             .blocked_recipients
@@ -404,7 +404,7 @@ fn main() {
         });
         p_max_lists.recipients.push_back(recipient);
         p_max_lists.protocols.push_back(ProtocolRule {
-            contract: addr(&env, i as u8),
+            contract: addr(&env, i),
             fns: None,
         });
     }
@@ -421,7 +421,7 @@ fn main() {
                 &alive(),
                 &mut max_list_ledger,
                 1000,
-                vec![&env, transfer_ctx_to(&env, 255, last_recipient.clone(), 1)],
+                vec![&env, transfer_ctx_to(&env, 255, &last_recipient, 1)],
             )
         },
     );
@@ -458,8 +458,7 @@ fn main() {
             ledger.admit(u64::from(i), 1);
         }
         let ceiling = match size {
-            0 => 35_000,
-            100 => 35_000,
+            0 | 100 => 35_000,
             8192 => 60_000,
             _ => unreachable!(),
         };
